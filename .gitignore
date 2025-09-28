@@ -33,14 +33,23 @@ venv.bak/
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
-# Data Science
-*.csv
+# Data Science - Large data files
+etf_final_dataset.csv
+etf_fundamentals.csv
+etf_monthly_metrics.csv
+etf_pairwise_corr.csv
+etf_ranked.csv
+etf_universe_used.csv
+etfdb_screener.csv
 *.sqlite
 *.db
 *.h5
 *.hdf5
 *.pkl
 *.pickle
+
+# Allow small shortlist files
+!shortlist_*.csv
 
 # Logs
 *.log
