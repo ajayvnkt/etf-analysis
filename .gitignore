@@ -33,14 +33,16 @@ venv.bak/
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
-# Data Science - Large data files
+# Data Science - Large data files (exclude generated outputs)
 etf_final_dataset.csv
 etf_fundamentals.csv
 etf_monthly_metrics.csv
 etf_pairwise_corr.csv
 etf_ranked.csv
 etf_universe_used.csv
-etfdb_screener.csv
+
+# Include input data file for immediate functionality
+# etfdb_screener.csv - included as it's essential for the tool to work
 *.sqlite
 *.db
 *.h5
