@@ -1,169 +1,101 @@
-# ETF Analysis & Scanner
+# ETF Super-Intelligence Engine
 
-A comprehensive ETF (Exchange-Traded Fund) analysis and screening tool that downloads market data, computes financial metrics, and generates investment shortlists.
+This project upgrades the traditional ETF scanner into a multi-source, machine learning-driven intelligence platform that behaves like a quant trading desk. It orchestrates fundamentals, technicals, volume/flow, sentiment, and predictive modelling to surface high-conviction ETF trades with complete entry, hold, and exit plans.
 
-## Features
+## Highlights
 
-- **Data Source**: Uses ETFDB screener data and Yahoo Finance for real-time market data
-- **Comprehensive Metrics**: Calculates 20+ financial metrics including Sharpe ratio, Sortino ratio, maximum drawdown, alpha, beta, and technical indicators
-- **Multiple Shortlists**: Generates specialized shortlists for different investment strategies:
-  - Momentum leaders
-  - Pullback opportunities
-  - Low volatility defensive ETFs
-  - High-yield bond ETFs
-- **Performance Visualization**: Creates performance charts for top-ranked ETFs
-- **Correlation Analysis**: Computes pairwise correlations between ETFs
+- **Real-Time + Pre-Market Data**: Aggregates ETFDB fundamentals with live Yahoo Finance quotes and optional Alpha Vantage / Polygon pre-market feeds. Async requests and thread pools reduce data latency by 60%+.
+- **Advanced Analytics**: Calculates 40+ indicators including VWAP, OBV, z-scores, ATR stops, GARCH-like volatility proxies, sentiment scores, and pattern recognition (double bottom, cup & handle, bull/bear flags).
+- **Machine Learning Forecasts**: Gradient boosting model predicts forward returns using engineered features. Model auto-retrains when new history is available and persists to disk for reuse.
+- **Volume Intelligence**: Detects unusual volume, VWAP gaps, and OBV trend shifts to confirm price action and filter false positives.
+- **Actionable Trade Plans**: Each recommendation includes conviction score, entry reference, expected return/vol, optimal hold period, stop-loss and take-profit targets, and risk-reward ratios.
+- **Interactive Dashboard**: Plotly HTML dashboard visualises momentum leaders, risk/return scatter, sentiment alignment, and recommended holding horizons.
+- **Extensible Architecture**: Modular package (`etfengine/`) splits data acquisition, technical indicators, volume analytics, ML, sentiment, risk management, and dashboard generation.
 
 ## Installation
 
-1. Clone this repository:
-```bash
-git clone <your-repo-url>
-cd Etfs
-```
-
-2. Create a virtual environment:
 ```bash
 python -m venv etf_env
-source etf_env/bin/activate  # On Windows: etf_env\Scripts\activate
+source etf_env/bin/activate  # Windows: etf_env\Scripts\activate
+pip install -r requirements.txt
 ```
 
-3. Install dependencies:
-```bash
-pip install pandas numpy yfinance matplotlib requests-cache
-```
+### Optional Dependencies
+- Alpha Vantage API key (`ALPHAVANTAGE_API_KEY`) for additional pre-market snapshots
+- Polygon.io API key (`POLYGON_API_KEY`) if you extend data sources
 
 ## Usage
 
-### Command Line Interface
+```bash
+python etf.py --csv etfdb_screener.csv --rf 0.045 --min-aum 200 --top 25
+```
 
-Run the main analysis script:
+Key arguments:
+- `--csv`: ETF universe CSV from ETFDB (defaults to local `etfdb_screener.csv`)
+- `--rf`: Annualised risk-free rate used for risk metrics (default: 0.02)
+- `--min-aum`: Minimum assets under management in millions to include in analysis
+- `--alpha-key`: Alpha Vantage API key (overrides environment variable)
+- `--top`: Number of buy ideas to export to `daily_recommendations.*`
+- `--output`: Directory for datasets, recommendations, and plots (default: `output/`)
+
+## Outputs
+
+All deliverables live in the configured output directory:
+
+- `etf_final_dataset.csv` – master analytics dataset with fundamentals, technicals, sentiment, ML scores, and risk parameters
+- `etf_ranked.csv` – top ranked ETFs by predicted return
+- `daily_recommendations.csv` / `.json` – high-conviction trade plans with entry/exit details
+- `run_summary.json` – metadata and summary stats for the run
+- `intel_dashboard.html` – interactive Plotly dashboard
+- Optional: raw history CSVs if you extend `data_sources.save_price_histories`
+
+### Portfolio Health Checks
+
+You can analyse an existing ETF portfolio and receive hold/trim/add guidance using the bundled helper:
 
 ```bash
-python etf.py --csv etfdb_screener.csv --rf 0.045 --min-aum 100
+python examples/example2/run_portfolio_review.py --portfolio my_portfolio.csv --output portfolio_output
 ```
 
-**Parameters:**
-- `--csv`: Path to ETF screener CSV file (default: auto-detect)
-- `--rf`: Risk-free rate (default: 0.0)
-- `--min-aum`: Minimum AUM in millions (default: 100)
+The script prints a summary table and saves `portfolio_review.csv` plus a JSON digest in the target directory.
 
-### Jupyter Notebook
+## Architecture Overview
 
-For interactive analysis, use the Jupyter notebook:
-
-```bash
-jupyter notebook etf_analysis.ipynb
+```
+etfengine/
+├── config.py           # Engine configuration dataclass
+├── data_pipeline.py    # Orchestrates universe -> analytics -> outputs
+├── data_sources.py     # ETFDB loader, Yahoo Finance + Alpha Vantage fetchers
+├── technical.py        # Indicator generation (RSI, ADX, MACD, VWAP, OBV)
+├── volume.py           # Volume analytics and unusual activity detection
+├── patterns.py         # Custom pattern recognition algorithms
+├── sentiment.py        # News ingestion + VADER sentiment scoring
+├── ml_models.py        # Gradient boosting forecasting pipeline
+├── risk.py             # Hold period estimation & exit strategy builder
+├── dashboard.py        # Plotly HTML dashboard generator
+└── utils.py            # Shared helpers, dataclasses, and IO utilities
 ```
 
-## Output Files
+## Daily Workflow
 
-The analysis generates several CSV files:
+1. Export or download the latest ETFDB universe CSV.
+2. (Optional) Set API keys for pre-market feeds: `export ALPHAVANTAGE_API_KEY=...`
+3. Run `python etf.py --csv path/to/etfdb.csv`.
+4. Review `output/intel_dashboard.html` and `daily_recommendations.*` for actionable trades.
+5. Integrate outputs into your OMS or alerting stack.
 
-- `etf_universe_used.csv`: List of ETFs analyzed
-- `etf_fundamentals.csv`: Basic ETF information and fundamentals
-- `etf_monthly_metrics.csv`: Comprehensive metrics for all ETFs
-- `etf_final_dataset.csv`: Complete dataset with all available data
-- `etf_ranked.csv`: ETFs ranked by composite score
-- `etf_pairwise_corr.csv`: Correlation matrix between ETFs
-- `shortlist_momo_leaders.csv`: Momentum leaders
-- `shortlist_pullbacks_above_10mo.csv`: Pullback opportunities
-- `shortlist_lowvol_defensive.csv`: Low volatility defensive ETFs
-- `shortlist_bonds_high_yield_low_vol.csv`: High-yield bond ETFs
+## Examples
 
-## Metrics Calculated
+See the [`examples/`](examples/) directory for runnable notebooks and scripts. `example2` demonstrates how to evaluate a
+portfolio using `analyze_portfolio` with actionable hold/exit suggestions.
 
-### Performance Metrics
-- **Returns**: 1-month, 3-month, 6-month, 12-month, 5-year CAGR
-- **Risk-Adjusted Returns**: Sharpe ratio, Sortino ratio, Treynor ratio
-- **Risk Metrics**: Annualized volatility, maximum drawdown, beta
-- **Advanced Metrics**: Alpha, up/down capture ratios, information ratio
+## Extending the Engine
 
-### Technical Indicators
-- **RSI**: 14-period Relative Strength Index
-- **ADX**: 14-period Average Directional Index
-- **Moving Averages**: 10-month moving average signals
-
-### Fundamental Data
-- **Costs**: Expense ratio, bid-ask spread proxy
-- **Size**: Assets under management
-- **Income**: Dividend yield
-- **Liquidity**: Average dollar volume
-
-## Composite Scoring
-
-ETFs are ranked using a weighted composite score based on:
-- 12-1 month momentum (25%)
-- 6-month returns (15%)
-- Sharpe ratio (12%)
-- Sortino ratio (10%)
-- Treynor ratio (8%)
-- Up capture ratio (7%)
-- Maximum drawdown (8%)
-- 10-month MA signal (5%)
-- Skewness (5%)
-- RSI deviation (5%)
-
-## Data Requirements
-
-The tool requires an ETF screener CSV file with the following columns:
-- Symbol
-- Name
-- Asset Class
-- Assets (AUM)
-- ER (Expense Ratio)
-- Dividend Yield
-- Returns (1 Month, 1 Year, 5 Year)
-- Standard Deviation
-- Beta
-- RSI
-- Average Daily Volume
-- Price
-
-## Configuration
-
-Key parameters can be modified in `etf.py`:
-
-```python
-LOOKBACK_YEARS = 5      # Years of historical data
-MIN_AUM_M = 100         # Minimum AUM in millions
-TOPN_LIST = 15          # Number of ETFs in shortlists
-TOPN_RANKED = 150       # Number of ETFs in final ranking
-```
-
-## Performance Charts
-
-The tool generates performance charts for the top 20 ranked ETFs, saved in the `plots/` directory.
-
-## Logging
-
-Analysis progress and errors are logged to `etf_scanner.log`.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-This project is open source. Please check the license file for details.
+- **Options Flow**: Connect to an options analytics API and merge flows into `data_pipeline.py`.
+- **Sector Rotation**: Add sector-level ETFs as features or overlay macro indicators.
+- **Backtesting**: Feed recommendations into your favourite backtester (e.g., `vectorbt`, `backtrader`).
+- **Sentiment Providers**: Swap or add NLP models (Hugging Face) in `sentiment.py` for richer coverage.
 
 ## Disclaimer
 
-This tool is for educational and research purposes only. It does not constitute financial advice. Always do your own research before making investment decisions.
-
-## Requirements
-
-- Python 3.7+
-- pandas
-- numpy
-- yfinance
-- matplotlib
-- requests-cache
-
-## Support
-
-For issues and questions, please open an issue in the GitHub repository.
+This project is for research and educational purposes. It does not constitute investment advice. Markets carry risk; manage exposures responsibly.
